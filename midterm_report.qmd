@@ -1,0 +1,263 @@
+---
+title: "Efficiency Under Pressure: An Analysis of Fire Control Duration in Toronto"
+subtitle: "JSC370 Midterm Project Report"
+author: "Yiwei Jiang"
+format:
+  html:
+    toc: true
+    embed-resources: true
+    theme: cosmo
+execute:
+  echo: false
+  warning: false
+  message: false
+jupyter: python3
+---
+
+## GitHub Repository
+The complete reproducible pipeline, including data acquisition scripts and environment configurations, is available here:  
+[**https://github.com/JYW5114/JSC370-project**](https://github.com/JYW5114/JSC370-project)
+
+---
+
+## Introduction
+
+This project investigates the factors influencing **Fire Control Duration** within the City of Toronto. This metric is defined as the time elapsed from the arrival of Toronto Fire Services (TFS) personnel at an incident scene to the moment the fire is officially declared under control. Understanding the drivers of this duration is critical for optimizing urban resource allocation and minimizing structural and economic damage.
+
+**Research Questions & Hypotheses:**
+What factors influence fire control duration? Do weather conditions affect suppression time? How do response resources relate to fire duration?
+
+---
+
+## Methods
+
+### Data Acquisition
+To satisfy the course requirement for dynamic data retrieval, I integrated two primary **API** sources:
+1.  **Toronto Open Data API:** I retrieved the `fire-incidents` dataset by querying the CKAN datastore directly using the `requests` library. This dataset provides comprehensive logs of every fire emergency call from 2011-01-01 to 2024-12-31. Each record corresponds to a single incident and includes information about incident location, property characteristics, response resources, and fire suppression timelines.
+2.  **Open-Meteo Historical Weather API:** I pulled hourly historical weather data (snowfall, temperature, and precipitation) for Toronto (Lat: 43.65, Lon: -79.38) to supplement the incident logs with environmental context.
+
+### Data Cleaning & Wrangling
+* **Preparation:** I used `dt.floor('H')` on the fire dataset to enable a precise `left join` with the weather API output. I set the variable `Control_Duration` to be $Fire\_Under\_Control\_Time - TFS\_Arrival\_Time$. I filtered the data to remove negative durations and extreme outliers exceeding 4 hours. I also filtered out the none fire incident catagories included in the dataset like medical calls. Variables like `Incident_Station_Area` contained a mix of integer and string types, so data type unification was performed.
+* **Feature Engineering:** I derived `Hour_of_Day`, `is_weekend`, and `month` to capture temporal patterns.
+* **Preventing Data Leakage:** The whole dataset is splitted into training, validation and testing datasets first. Data analysis and modeling is only conducted on the training set. The features happen after the fire goes under control should not be included in the model, such as `Count_of_Persons_Rescued` and `Estimated_Number_Of_Persons_Displaced`.
+
+### Statistical Tools
+Exploratory data analysis (EDA) was conducted using Python libraries including pandas, seaborn, matplotlib, and plotly. Summary statistics and visualizations were used to understand the distribution of fire control duration and identify potential relationships between explanatory variables and suppression time.
+
+Several visualization techniques were applied:
+* Histograms to analyze the distribution of fire control duration  
+* Boxplots to examine relationships between categorical variables and suppression time  
+* Scatterplots to explore relationships between continuous variables  
+* Interactive geographic maps to visualize the spatial distribution of fire incidents across Toronto  
+
+For the final modeling stage, an XGBoost regression model will be implemented to predict fire control duration based on incident characteristics, weather conditions, and response resources.
+
+
+---
+
+## Preliminary Results
+
+As shown in the map, most of the fire incidents are quite spread out and controlled quickly, with downtown being the most dense area. There are more larger fires centered in the downtown area as well in terms of loss and control time.
+```{python}
+#| echo: false
+#| eval: true
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from matplotlib.lines import Line2D
+%matplotlib inline
+
+df = pd.read_csv("fire.csv")
+time_cols = ['TFS_Alarm_Time', 'TFS_Arrival_Time', 'Fire_Under_Control_Time', 'Hourly_Timestamp']
+for col in time_cols:
+    df[col] = pd.to_datetime(df[col])
+df['Control_Duration'] = (df['Fire_Under_Control_Time'] - df['TFS_Arrival_Time']).dt.total_seconds()
+df['Hour_of_Day'] = df['Hourly_Timestamp'].dt.hour
+df['is_weekend'] = df['Hourly_Timestamp'].dt.dayofweek >= 5
+
+def categorize_event(x):
+    x = str(x)
+    if "Fire" in x or x.startswith("FI"):
+        return "Fire"
+    else:
+        return "Other"
+df["Event_Category"] = df["Initial_CAD_Event_Type"].apply(categorize_event)
+df = df[df["Event_Category"]=="Fire"]
+
+df_train_val, df_test = train_test_split(df, test_size=0.2, random_state=42)
+df_train, df_val = train_test_split(df_train_val, test_size=0.2, random_state=42)
+
+df_analysis = df_train[(df_train['Control_Duration'] > 0) & (df_train['Control_Duration'] < 14400)].copy()
+df_analysis['Incident_Station_Area'] = df_analysis['Incident_Station_Area'].astype(int)
+
+df_map = df_analysis.dropna(subset=['Latitude', 'Longitude', 'Control_Duration', "Estimated_Dollar_Loss"])
+df_map = df_map[df_map['Control_Duration'] < 7200]
+fig = px.scatter_mapbox(df_map, 
+                        lat="Latitude", 
+                        lon="Longitude", 
+                        color="Control_Duration", 
+                        size="Estimated_Dollar_Loss",
+                        color_continuous_scale=px.colors.cyclical.IceFire, 
+                        size_max=15, 
+                        zoom=10,
+                        mapbox_style="carto-positron",
+                        title="Fire distribution",
+                        hover_data=['Final_Incident_Type', 'Property_Use'])
+fig.show()
+```
+
+The overall distribution of Control Duration is highly right-skewed. But the trend of incidents across years is relatively stable across years.
+```{python}
+#| echo: false
+#| eval: true
+plt.hist(df_analysis["Control_Duration"], bins=50, color='skyblue', edgecolor='black')
+plt.title("Control Duration Distribution")
+plt.xlabel("Control Duration")
+plt.ylabel("Frequency")
+```
+
+```{python}
+#| echo: false
+#| eval: true
+df_analysis["Year_Month"] = df_analysis["TFS_Alarm_Time"].dt.to_period("M")
+monthly_duration = (
+    df_analysis
+    .groupby("Year_Month")["Control_Duration"]
+    .median()
+    .reset_index()
+)
+monthly_duration["Year_Month"] = monthly_duration["Year_Month"].astype(str)
+plt.figure(figsize=(14,6))
+
+sns.lineplot(
+    data=monthly_duration,
+    x=range(len(monthly_duration)),
+    y="Control_Duration"
+)
+
+plt.yscale("log")
+
+plt.xticks(
+    ticks=range(0, len(monthly_duration), 12),
+    labels=monthly_duration["Year_Month"][::12],
+    rotation=45
+)
+
+plt.xlabel("Year")
+plt.ylabel("Median Control Duration")
+plt.title("Monthly Trend of Fire Control Duration (2011–2024)")
+
+plt.show()
+```
+
+By analyzing the relationship between months, temperatures, and median control duration, I observed a clear periodic pattern and a strong negative correlation between the two predictors. To avoid multicollinearity and simplify the model, I have opted to retain only temperature as a feature in the final model, as it provides a more granular and direct measure of environmental impact on control time. 
+```{python}
+#| echo: false
+#| eval: true
+from matplotlib.lines import Line2D
+df_analysis["Month"] = df_analysis["TFS_Alarm_Time"].dt.month
+monthly_stats = (
+    df_analysis
+    .groupby("Month")
+    .agg(
+        median_duration=("Control_Duration", "median"),
+        mean_temperature=("temperature_2m", "mean")
+    )
+    .reset_index()
+)
+fig, ax1 = plt.subplots(figsize=(10,6))
+line1 = sns.lineplot(
+    data=monthly_stats,
+    x="Month",
+    y="median_duration",
+    marker="o",
+    ax=ax1,
+    color="tab:blue"
+)
+ax1.set_yscale("log")
+ax1.set_xlabel("Month")
+ax1.set_ylabel("Median Control Duration", color="tab:blue")
+ax1.set_xticks(range(1,13))
+ax1.set_title("Seasonal Pattern of Fire Control Duration and Temperature")
+ax1.tick_params(axis='y', labelcolor="tab:blue")
+ax2 = ax1.twinx()
+line2 = sns.lineplot(
+    data=monthly_stats,
+    x="Month",
+    y="mean_temperature",
+    marker="s",
+    linestyle="--",
+    ax=ax2,
+    color="tab:red"
+)
+ax2.set_ylabel("Average Temperature (°C)", color="tab:red")
+ax2.tick_params(axis='y', labelcolor="tab:red")
+legend_elements = [
+    Line2D([0], [0], color="tab:blue", marker="o", label="Median Control Duration"),
+    Line2D([0], [0], color="tab:red", marker="s", linestyle="--", label="Average Temperature")
+]
+ax1.legend(handles=legend_elements, loc="upper left")
+plt.grid(alpha=0.3)
+plt.show()
+```
+
+Some variation in suppression duration is observed across different times of the day with fires happen during the night having larger median control durations.
+```{python}
+#| echo: false
+#| eval: true
+plt.figure(figsize=(10,5))
+sns.lineplot(
+    data=df_analysis,
+    x="Hour_of_Day",
+    y="Control_Duration",
+    estimator="median",
+    errorbar=None,
+    marker="o"
+)
+plt.yscale("log")
+plt.xticks(range(24))
+plt.xlabel("Hour of Day")
+plt.ylabel("Median Control Duration")
+plt.title("Fire Control Duration by Hour of Day")
+plt.grid(alpha=0.3)
+plt.show()
+```
+
+The weather also shows impact on the control time. The plot shows a noticeable increase in the control duration if the snowfall reaches medium and higher level. 
+```{python}
+#| echo: false
+#| eval: true
+df_analysis['Snow_Level'] = pd.cut(df_analysis['snowfall'], 
+                                   bins=[-1, 0, 2, 5], 
+                                   labels=['None', 'Light', 'Moderate'])
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=df_analysis, x='Snow_Level', y='Control_Duration')
+plt.title('Impact of Snowfall Severity on Fire Control Duration')
+plt.yscale('log')
+plt.show()
+```
+
+## Summary
+Based on the exploratory analysis, several key insights emerge:
+
+* Control Duration Distribution: Most fire incidents are resolved quickly, but the distribution is right-skewed, with a small number of incidents taking significantly longer to control. These longer events tend to cluster in downtown areas and involve larger property or multi-unit buildings.
+
+* Temporal Patterns: Fire control duration varies by hour of the day and season. Incidents occurring during night hours or in colder months tend to have longer median control durations, reflecting operational challenges such as low visibility, icy roads, or increased response complexity.
+
+* Weather Impact: Snowfall and lower temperatures are associated with longer fire suppression times. In particular, medium to heavy snowfall correlates with noticeable increases in control duration.
+
+* Response Resources: Features such as the number of responding personnel and apparatus are recorded, and will be considered in the predictive modeling stage. Early analysis shows a complicated relationship between the control time and the resources.
+
+
+### Plan for Final Project
+For the final phase of this project, I will build a predictive model and an interactive website:
+
+* Machine Learning Modeling (XGBoost): I will implement an XGBoost Regressor to predict Control_Duration. XGBoost is selected for its superior ability to capture non-linear interactions and handle categorical features.
+
+* Interactive Visualization: I plan to build a comprehensive dashboard where users can explore historical fire incidents via an interactive map.
+
+* Predictive Simulator: The final website will feature a predictive simulator. Users will be able to select a location on a Toronto map, adjust parameters (e.g., snowfall, time of day, number of responding personnel), and receive an estimated control duration from the XGBoost model. It will also provide insights into how many personnel may be needed for the incident by allowing the users to specify the number of responding personnel. If time permitted, I will also try to build another model for predicting the financial loss of a fire incident.
