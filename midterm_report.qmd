@@ -395,6 +395,144 @@ plt.tight_layout()
 plt.show()
 ```
 
+
+#### 6. Correlation Matrix
+
+The correlation matrix in @fig-corr shows that control duration and the number of responding apparatus have the strongest positive relationship with financial loss, while weather variables show very weak correlations. This does not preclude the importance of weather condition. As previously explored in the snowfall analysis (@fig-snow), environmental impact manifests through non-linear threshold effects rather than direct linear scaling. Therefore, these features should be retained for machine learning models capable of capturing complex interactions, such as those between freezing temperatures and operational response challenges.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Correlation Matrix of Numerical Variables
+#| label: fig-corr
+
+numeric_cols = [
+    "Estimated_Dollar_Loss",
+    "Control_Duration",
+    "temperature_2m",
+    "snowfall",
+    "precipitation",
+    "Number_of_responding_personnel",
+    "Number_of_responding_apparatus",  
+]
+
+corr_matrix = df_analysis[numeric_cols].corr()
+
+plt.figure(figsize=(8,6))
+sns.heatmap(
+    corr_matrix,
+    annot=True,
+    cmap="coolwarm",
+    fmt=".2f",
+    linewidths=0.5
+)
+
+plt.title("Correlation Matrix of Key Numerical Variables")
+plt.show()
+```
+
+### Preliminary Predictive Modeling
+
+To assess whether the available variables contain predictive information about financial loss, a preliminary XGBoost regression model was trained on the training dataset. The target variable `Estimated_Dollar_Loss` was log-transformed using log(1 + loss) to address the strong right-skew observed in the distribution. A set of baseline hyperparameters (n_estimators = 400, max_depth = 6, learning_rate = 0.05, subsample = 0.8, colsample_bytree = 0.8) was used without tuning.
+
+As shown in @fig-pre, predicted values generally increase with the actual losses, indicating that the model captures meaningful predictive signals from the selected features. However, noticeable dispersion remains around the diagonal line, particularly for incidents with very low losses. The concentration of points near zero actual loss suggests that the model may struggle to distinguish zero-loss incidents.
+
+The model achieved a validation $R^2$ of approximately 0.36, suggesting that the available features explain a moderate portion of the variation in fire-related financial loss. This result indicates that predictive modeling is feasible and motivates further model refinement in the final project.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Preliminary Predictive Modeling Predicted vs Actual Financial Loss
+#| label: fig-pre
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error, r2_score
+from xgboost import XGBRegressor
+
+features = [
+    "Control_Duration",
+    "temperature_2m",
+    "Snow_Level",
+    "Number_of_responding_apparatus",
+    "Hour_of_Day",
+    "Sprinkler_System_Presence",
+    "Property_Group",
+    "Estimated_Dollar_Loss"
+]
+categorical = [
+    "Sprinkler_System_Presence",
+    "Property_Group",
+    "Snow_Level"
+]
+
+numeric = [
+    "Control_Duration",
+    "temperature_2m",
+    "Number_of_responding_apparatus",
+    "Hour_of_Day"
+]
+
+df_model = df_analysis[features].dropna()
+
+X_train = df_model.drop(columns=["Estimated_Dollar_Loss"])
+y_train = np.log1p(df_model["Estimated_Dollar_Loss"])
+
+df_val['Snow_Level'] = pd.cut(df_val['snowfall'], 
+                            bins=[-1, 0, 2, 5], 
+                            labels=['None', 'Light', 'Moderate'])
+df_val["Property_Group"] = df_val["Property_Use"].where(
+    df_val["Property_Use"].isin(top_property),
+    "Other"
+)
+df_val_model = df_val[features].dropna()
+
+X_val = df_val_model.drop(columns=["Estimated_Dollar_Loss"])
+y_val = np.log1p(df_val_model["Estimated_Dollar_Loss"])
+preprocess = ColumnTransformer(
+    transformers=[
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical),
+        ("num", "passthrough", numeric)
+    ]
+)
+xgb_model = XGBRegressor(
+    n_estimators=400,
+    max_depth=6,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    random_state=42
+)
+pipeline = Pipeline([
+    ("prep", preprocess),
+    ("model", xgb_model)
+])
+
+pipeline.fit(X_train, y_train)
+
+y_pred = pipeline.predict(X_val)
+
+rmse = np.sqrt(mean_squared_error(y_val, y_pred))
+r2 = r2_score(y_val, y_pred)
+
+plt.figure(figsize=(6,6))
+
+plt.scatter(y_val, y_pred, alpha=0.4)
+
+plt.xlabel("Actual Log Loss")
+plt.ylabel("Predicted Log Loss")
+
+plt.title("Predicted vs Actual Financial Loss")
+
+plt.plot(
+    [y_val.min(), y_val.max()],
+    [y_val.min(), y_val.max()],
+    linestyle="--"
+)
+
+plt.show()
+```
+
 ## Summary
 Based on the exploratory analysis, several key insights emerge:
 
@@ -412,7 +550,7 @@ Based on the exploratory analysis, several key insights emerge:
 ## Plan for Final Project
 For the final phase of this project, I will develop a predictive modeling framework and an interactive platform to explore fire incident financial loss in Toronto:
 
-* Machine Learning Modeling (XGBoost): I will implement an XGBoost Regressor to predict `Estimated_Dollar_Loss`. XGBoost is selected for its superior ability to capture non-linear interactions and handle categorical features. Hyperparameters will be optimized using a grid search on the validation set. The model will be evaluated using metrics such as RMSE and R^2, and feature importance will be analyzed to identify the most influential factors driving fire losses.
+* Machine Learning Modeling (XGBoost): I will implement an XGBoost Regressor to predict `Estimated_Dollar_Loss`. XGBoost is selected for its superior ability to capture non-linear interactions and handle categorical features. Hyperparameters will be optimized using a grid search on the validation set. The model will be evaluated using metrics such as RMSE and $R^2$, and feature importance will be analyzed to identify the most influential factors driving fire losses.
 
 * Interactive Visualization: I plan to build a comprehensive dashboard where users can explore historical fire incidents via an interactive map.
 
