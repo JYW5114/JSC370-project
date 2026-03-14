@@ -37,9 +37,9 @@ The model predicts financial loss immediately after a fire is brought under cont
 ### Data Acquisition
 To satisfy the course requirement for dynamic data retrieval, I integrated two primary **API** sources:
 
-1.  **Toronto Open Data API:** I retrieved the `fire-incidents` dataset by querying the CKAN datastore directly using the `requests` library. This dataset provides comprehensive logs of every fire emergency call from 2011-01-01 to 2024-12-31. Each record corresponds to a single incident and includes information about incident location, property characteristics, response resources, and fire suppression timelines.
+1.  **Toronto Open Data API:** I retrieved the `fire-incidents` dataset by the CKAN API using the `requests` library. This dataset provides comprehensive logs of every fire emergency call from 2011-01-01 to 2024-12-31. Each record corresponds to a single incident and includes information about incident location, property characteristics, response resources, and fire suppression timelines.
 
-2.  **Open-Meteo Historical Weather API:** I pulled hourly historical weather data (snowfall, temperature, and precipitation) for Toronto (Lat: 43.65, Lon: -79.38) to supplement the incident logs with environmental context.
+2.  **Open-Meteo Historical Weather API:** To examine the environmental context of fire incidents, I utilized the Open-Meteo Historical Weather API. I queried hourly data for temperature (2m), snowfall, and precipitation from January 2011 to December 2024, using the specific coordinates for Toronto (Lat: 43.65, Lon: -79.38).
 
 ### Data Cleaning & Wrangling
 
