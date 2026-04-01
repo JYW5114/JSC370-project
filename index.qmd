@@ -1,0 +1,16 @@
+---
+title: "JSC370 Final Project"
+author: "Your Name"
+jupyter: python3
+execute:
+  warning: false
+  message: false
+  echo: false
+---
+
+
+
+This is my JSC370 Final Project website. I will showcase a few interactive visuals here.
+
+
+

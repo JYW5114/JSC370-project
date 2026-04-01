@@ -1,0 +1,34 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "My Website"
+  navbar:
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Report"
+        href: midterm_report.qmd
+      - text: "About"
+        href: about.qmd
+    right:
+      - icon: github
+        href: https://github.com/JSC370/JSC370-2026/
+      - text: "JSC370 Home"
+        href: https://jsc370.github.io/JSC370-2026/
+      - icon: instagram
+        href: https://www.instagram.com/
+      - text: "Dashboard"
+        href: https://jsc370-finalproject.onrender.com/
+        target: _blank
+
+  page-footer:
+    center: "Copyright © 2026 My Name. All rights reserved."
+
+format:
+  html:
+    theme: darkly
+    toc: true
+    toc-float: true
+    css: styles.css
