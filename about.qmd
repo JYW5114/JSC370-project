@@ -1,9 +1,0 @@
----
-title: "About This Website"
-author: "Your Name"
----
-
-
-
-Hello! I'm Yiwei.
-

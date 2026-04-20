@@ -1,0 +1,57 @@
+---
+title: "Visualizations for HW5"
+author: "Yiwei Jiang"
+---
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Spatial distribution of fire incidents in Toronto
+#| label: fig-fire-map
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from matplotlib.lines import Line2D
+%matplotlib inline
+
+df = pd.read_csv("fire.csv")
+time_cols = ['TFS_Alarm_Time', 'TFS_Arrival_Time', 'Fire_Under_Control_Time', 'Hourly_Timestamp']
+for col in time_cols:
+    df[col] = pd.to_datetime(df[col])
+df['Control_Duration'] = (df['Fire_Under_Control_Time'] - df['TFS_Arrival_Time']).dt.total_seconds()
+df['Hour_of_Day'] = df['Hourly_Timestamp'].dt.hour
+df['is_weekend'] = df['Hourly_Timestamp'].dt.dayofweek >= 5
+
+def categorize_event(x):
+    x = str(x)
+    if "Fire" in x or x.startswith("FI"):
+        return "Fire"
+    else:
+        return "Other"
+df["Event_Category"] = df["Initial_CAD_Event_Type"].apply(categorize_event)
+df = df[df["Event_Category"]=="Fire"]
+
+df_train_val, df_test = train_test_split(df, test_size=0.2, random_state=42)
+df_train, df_val = train_test_split(df_train_val, test_size=0.2, random_state=42)
+
+df_analysis = df_train[(df_train['Control_Duration'] > 0) & (df_train['Control_Duration'] < 14400)].copy()
+df_analysis['Incident_Station_Area'] = df_analysis['Incident_Station_Area'].astype(int)
+
+df_map = df_analysis.dropna(subset=['Latitude', 'Longitude', 'Control_Duration', "Estimated_Dollar_Loss"])
+df_map = df_map[df_map['Control_Duration'] < 7200]
+fig = px.scatter_mapbox(df_map, 
+                        lat="Latitude", 
+                        lon="Longitude", 
+                        color="Control_Duration", 
+                        size="Estimated_Dollar_Loss",
+                        color_continuous_scale=px.colors.cyclical.IceFire, 
+                        size_max=15, 
+                        zoom=10,
+                        mapbox_style="carto-positron",
+                        title="Fire distribution",
+                        hover_data=['Final_Incident_Type', 'Property_Use'])
+fig.show()
+```
+

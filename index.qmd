@@ -1,6 +1,6 @@
 ---
 title: "JSC370 Final Project"
-author: "Your Name"
+author: "Yiwei Jiang"
 jupyter: python3
 execute:
   warning: false
@@ -8,9 +8,17 @@ execute:
   echo: false
 ---
 
+This is my JSC370 Final Project website.
 
+## Introduction
 
-This is my JSC370 Final Project website. I will showcase a few interactive visuals here.
+This project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.
+
+**Research Questions:**
+What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain types of properties or incident types associated with higher losses?
+
+**Research Hypothesis:**
+The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation.
 
 
 
