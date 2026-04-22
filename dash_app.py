@@ -1,14 +1,7 @@
 from dash import Dash, dcc, html, Input, Output
 import plotly.graph_objects as go
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
 from sklearn.model_selection import train_test_split
-from matplotlib.lines import Line2D
-import ipywidgets as widgets
-from IPython.display import display
 
 df = pd.read_csv("fire.csv", low_memory=False)
 time_cols = ['TFS_Alarm_Time', 'TFS_Arrival_Time', 'Fire_Under_Control_Time', 'Hourly_Timestamp']
