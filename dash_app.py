@@ -89,11 +89,12 @@ sprinklers = {
 
 properties = ["All", "Residential", "Commercial", "Other"]
 
-app = Dash(__name__)
+app = Dash(__name__, requests_pathname_prefix="/")
 server = app.server
+
 @server.after_request
-def allow_iframe(response):
-    response.headers.pop("X-Frame-Options", None)
+def add_headers(response):
+    response.headers["X-Frame-Options"] = "ALLOWALL"
     response.headers["Content-Security-Policy"] = "frame-ancestors *"
     return response
 
