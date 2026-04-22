@@ -2,6 +2,7 @@ from dash import Dash, dcc, html, Input, Output
 import plotly.graph_objects as go
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from flask import request
 
 df = pd.read_csv("fire.csv", low_memory=False)
 time_cols = ['TFS_Alarm_Time', 'TFS_Arrival_Time', 'Fire_Under_Control_Time', 'Hourly_Timestamp']
@@ -90,6 +91,11 @@ properties = ["All", "Residential", "Commercial", "Other"]
 
 app = Dash(__name__)
 server = app.server
+@server.after_request
+def allow_iframe(response):
+    response.headers.pop("X-Frame-Options", None)
+    response.headers["Content-Security-Policy"] = "frame-ancestors *"
+    return response
 
 app.layout = html.Div([
 
