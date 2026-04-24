@@ -93,6 +93,7 @@ In the visualization, the x-axis represents different incident wards in Toronto,
 #| eval: true
 #| fig-cap: Distribution of Fire Response Time by Ward and Estimated Loss Level
 #| label: fig-resp
+#| out-width: "100%"
 def categorize_property(x):
     if pd.isna(x):
         return "Other"
@@ -158,12 +159,12 @@ fig.add_hline(
     y=global_median,
     line_dash="solid",
     line_color="black",
-    annotation_text="Global Median Response Time",
+    annotation_text="Global Median",
     annotation_position="right"
 )
 
 fig.update_layout(
-    width=1600,
+    width=1800,
     height=600
 )
 
