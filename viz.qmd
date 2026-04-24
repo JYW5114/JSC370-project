@@ -21,7 +21,7 @@ In the visualization, point size represents the estimated financial loss, while 
 ```{python}
 #| echo: false
 #| eval: true
-#| fig-cap: Spatial distribution of fire incidents in Toronto
+#| fig-cap: Spatial distribution of fire incidents in Toronto by Year
 #| label: fig-fire-map
 import pandas as pd
 import numpy as np
@@ -84,37 +84,128 @@ As shown in @fig-fire-map, fire incidents in Toronto are generally spread across
 
 The plot suggests that the relationship between fire duration and financial loss is not straightforward. Some incidents with relatively short control durations still result in substantial financial damage, while fires that take longer to control do not necessarily lead to extremely large losses. This pattern indicates that additional factors beyond fire duration likely play an important role in determining the final financial impact of an incident.
 
+### 2. Variation in fire response time across wards and loss levels
 
-### 2. Interaction between Property Type, Sprinkler System, and Fire Scale
+In the visualization, the x-axis represents different incident wards in Toronto, while the y-axis shows the response time (in minutes) for each fire incident. Color is used to distinguish between high and low estimated financial loss, where the threshold is defined by the 75th percentile of total loss values. Each point represents an individual fire incident, and outliers are displayed to highlight extreme response times. Hovering over each point reveals additional details, including estimated dollar loss, property group classification, and ward information, allowing for more granular inspection of incident characteristics across spatial units.
 
-This visualization presents a parallel categories (Sankey) plot, which is used to examine how multiple categorical variables jointly interact and influence fire loss outcomes. Specifically, the plot links three key dimensions of fire incidents in Toronto:
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Distribution of Fire Response Time by Ward and Estimated Loss Level
+#| label: fig-resp
+def categorize_property(x):
+    if pd.isna(x):
+        return "Other"
+    
+    code = x.split(" - ")[0].strip()
+    
+    residential = {"301", "302", "303", "321", "322", "323", "311", "331"}
+    commercial = {"151", "501", "405", "334"}
+    vehicles = {"901", "902", "903", "837"}
+    garages = {"365", "603"}
+    infra = {"896", "144", "846", "891"}
+    waste = {"848"}
+    
+    if code in residential:
+        return "Residential"
+    elif code in commercial:
+        return "Commercial"
+    elif code in vehicles:
+        return "Vehicles"
+    elif code in infra:
+        return "Infrastructure"
+    elif code in waste:
+        return "Waste"
+    elif code in garages:
+        return "Garages"
+    else:
+        return "Other"
+    
+df_analysis["Property_Group"] = df_analysis["Property_Use"].apply(categorize_property)
+
+df_analysis["TFS_Alarm_Time"] = pd.to_datetime(df_analysis["TFS_Alarm_Time"])
+df_analysis["TFS_Arrival_Time"] = pd.to_datetime(df_analysis["TFS_Arrival_Time"])
+
+df_analysis["Response_Time"] = (
+    df_analysis["TFS_Arrival_Time"] - df_analysis["TFS_Alarm_Time"]
+).dt.total_seconds() / 60
+
+df_analysis = df_analysis[df_analysis["Response_Time"]>=0]
+
+threshold = df_analysis["Estimated_Dollar_Loss"].quantile(0.75)
+df_analysis["Loss_Level"] = np.where(
+    df_analysis["Estimated_Dollar_Loss"] >= threshold,
+    "High","Low"
+)
+
+df_plot = df_analysis.dropna(subset=["Estimated_Dollar_Loss"])
+df_plot["Incident_Ward"] = df_plot["Incident_Ward"].astype("category")
+df_plot = df_plot[df_plot["Response_Time"] < 40]
+
+fig = px.box(
+    df_plot,
+    x="Incident_Ward",
+    y="Response_Time",
+    color="Loss_Level",
+    points="outliers",
+    hover_data=["Estimated_Dollar_Loss", "Property_Group"],
+    title="Response Time Distribution by Ward"
+)
+
+global_median = df_plot["Response_Time"].median()
+
+fig.add_hline(
+    y=global_median,
+    line_dash="solid",
+    line_color="black",
+    annotation_text="Global Median Response Time",
+    annotation_position="right"
+)
+
+fig.update_layout(
+    width=1600,
+    height=600
+)
+
+fig.show()
+```
+
+As shown in @fig-response-ward, overall, median response times are relatively similar between the two groups in most wards. Wards 24, 25, 26 and 39 show obvious slower response compared to the overall median of all wards. Wards 13, 27, 28 and 29 generally respond faster than the others.
+
+Certain wards such as 15, 16, 22, 33, and 36 show noticeably higher response times for high-loss incidents. This pattern suggests that these areas may require improved situational awareness or prioritization strategies when high-damage incidents occur, as delays in these wards are more strongly associated with larger financial consequences.
+
+In contrast, wards 4 and 13 exhibit relatively fast response times even for high-loss cases. They show relatively faster response times even for high-loss incidents. This may indicate effective dispatch efficiency or better accessibility. However, the presence of high financial loss despite fast response suggests that in these wards, fire severity at arrival or asset vulnerability may play a larger role than response delay itself.
+
+Wards 1–15 show a much wider spread of response times for both loss categories compared to Wards 26–44, indicating greater operational variability. This could reflect differences in infrastructure density.
+
+Another notable pattern is that many of the extreme outliers in high-loss incidents correspond to vehicle-related fires. This suggests that vehicle fires may carry inherently high financial volatility, potentially due to rapid escalation, proximity to other assets, or underestimation of fire spread risk in such scenarios.
+
+### 3. Interaction between Property Type, Sprinkler System, and Fire Scale by Dash
+
+This visualization using Dashboard presents a parallel categories (Sankey) plot, which is used to examine how multiple categorical variables jointly interact and influence fire loss outcomes. Specifically, the plot links three key dimensions of fire incidents in Toronto:
 
 - Property_Group_Plot (property type: Residential, Commercial, Other)
 - Sprinkler_System_Presence (fire suppression system level)
 - Scale (incident response scale)
 
-Each path in the diagram represents a combination of these attributes, while the color encoding reflects the Loss_Level (Low, Medium, High).
+Each path in the diagram represents a combination of these attributes, while the color encoding reflects the Loss_Level (Low, Medium, High by 0.33 and 0.66 quantiles).
 
 
-<iframe
-  src="https://jsc370-project.onrender.com/"
-  width="100%"
-  height="650px"
-  style="border:none;">
-</iframe>
+<a href="https://jsc370-project.onrender.com" target="_blank">
+Open Dashboard
+</a>
 
+It allows users to examine the data from different perspectives:
 
-This visualization allows users to examine the data from different perspectives:
-
-* Sprinkler System (All vs. specific types)
+##### Sprinkler System (All vs. specific types)
 - All: displays the full structure across all sprinkler conditions, revealing general interaction patterns.
 - Full / Partial / No: isolates specific system conditions to evaluate how suppression level changes the relationship.
 
-* Property Type (All vs. specific categories)
+##### Property Type (All vs. specific categories)
 - All: provides a global overview across Residential, Commercial, and Other property types.
 - Residential / Commercial / Other: isolates structural differences within each property category.
 
 The underlying risk of a specific fire scale is approximately similarly distributed across the three property groups. In general, larger-scale incidents are more likely to be associated with higher financial losses. Properties equipped with sprinkler systems tend to exhibit a relatively lower risk of generating large losses.
 
-In Residential and Commercial groups, as fire suppression improves from No tp Partial and to Full sprinkler coverage, the proportion of high-loss (red) outcomes decreases in cases of large scale. This suggests that sprinkler systems play a strong mitigating role in reducing severe financial loss when incidents escalate. However, this relationship is not equally evident in the Other property category. 
+In Residential and Commercial groups, as fire suppression improves from No tp Partial and to Full sprinkler coverage, the proportion of high-loss (dark purple) outcomes decreases in cases of large scale. This suggests that sprinkler systems play a strong mitigating role in reducing severe financial loss when incidents escalate. However, this relationship is not equally evident in the Other property category. 
 
