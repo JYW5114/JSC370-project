@@ -49,7 +49,7 @@ The project combines:
 
 ## Full Report
 
-👉 https://github.com/username/JSC370-finalproject/blob/main/docs/JSC370_report.pdf
+👉 https://github.com/JYW5114/JSC370-project/blob/main/docs/JSC370_report.pdf
 
 ## 🛠️ Technologies
 
