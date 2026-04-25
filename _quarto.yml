@@ -14,13 +14,17 @@ website:
         href: viz.qmd
     right:
       - icon: github
-        href: https://github.com/JSC370/JSC370-2026/
-      - text: "My JSC370 Project Home"
         href: https://github.com/JYW5114/JSC370-project
-      # - icon: instagram
-      #   href: https://www.instagram.com/
-      # - text: "Dashboard"
-      #   href: https://jsc370-finalproject.onrender.com/
+      - text: "My Project Home"
+        href: https://github.com/JYW5114/JSC370-project
+      - icon: file-earmark-pdf
+        href: https://github.com/JYW5114/JSC370-project
+      - text: "Full Report"
+        href: https://github.com/JYW5114/JSC370-project
+      - icon: escape
+        href: https://github.com/JYW5114/JSC370-project
+      - text: "Dashboard"
+        href: https://jsc370-finalproject.onrender.com/
       #   target: _blank
 
   page-footer:

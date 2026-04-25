@@ -1,0 +1,1014 @@
+---
+title: "Analysis of Factors Influencing Fire Incident Financial Loss in Toronto"
+author: "Yiwei Jiang"
+format:
+  html:
+    toc: true
+    embed-resources: true
+    theme: cosmo
+execute:
+  echo: false
+  warning: false
+  message: false
+jupyter: python3
+---
+
+## GitHub Repository
+The complete reproducible pipeline, including data acquisition scripts and environment configurations, is available here:  
+[**https://github.com/JYW5114/JSC370-project**](https://github.com/JYW5114/JSC370-project)
+
+---
+
+## Introduction
+
+This project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.
+
+**Research Questions:**
+What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain types of properties or incident types associated with higher losses?
+
+**Research Hypothesis:**
+The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation.
+
+---
+
+## Methods
+
+### Data Acquisition
+To satisfy the course requirement for dynamic data retrieval, I integrated two primary **API** sources:
+
+1.  **Toronto Open Data API:** I retrieved the `fire-incidents` dataset by the CKAN API using the `requests` library. This dataset provides comprehensive logs of every fire emergency call from 2011-01-01 to 2024-12-31. Each record corresponds to a single incident and includes information about incident location, property characteristics, response resources, and fire suppression timelines.
+
+2.  **Open-Meteo Historical Weather API:** To examine the environmental context of fire incidents, I utilized the Open-Meteo Historical Weather API. I queried hourly data for temperature (2m), snowfall, and precipitation from January 2011 to December 2024, using the specific coordinates for Toronto (Lat: 43.65, Lon: -79.38).
+
+### Data Cleaning & Wrangling
+
+* **Preparation:** I used `dt.floor('H')` on the fire dataset to enable a precise `left join` with the weather API output. I filtered the dataset to include only incidents with non-missing `Estimated_Dollar_Loss` values and removed extreme outliers using a log-transform approach to stabilize variance. Variables like `Incident_Station_Area` contained a mix of integer and string types, so data type unification was performed. Because the dataset includes incidents other than fires (e.g., medical calls), the data was further filtered to retain fire-related incidents only.
+
+Detailed code of this process and data acquisition from the APIs can be found here:
+[**https://github.com/JYW5114/JSC370-project/blob/main/dataset.ipynb**](https://github.com/JYW5114/JSC370-project/blob/main/dataset.ipynb)
+
+The prepared dataset is saved in the same github repository. It contains 36564 rows(observations) and 51 columns (features).
+
+* **Feature Engineering:** I constructed a comprehensive set of temporal, spatial, operational, and risk-related features to enhance predictive performance and interpretability.  
+
+  * **Temporal features:** From the event timestamp (`Hourly_Timestamp`), I derived `Hour_of_Day`, `Month`, and `is_weekend` to capture diurnal, seasonal, and weekly patterns. To better represent cyclic time structure, I also encoded hour using sinusoidal transformations (`Hour_sin`, `Hour_cos`) to preserve periodicity.  
+
+  * **Response dynamics:** I defined `Response_Time` as the elapsed time between TFS alarm and arrival, and `Control_Duration` as the time from TFS arrival to the moment the fire is declared under control. These variables capture emergency response efficiency and fire suppression duration.  
+
+  * **Spatial features:** I computed `distance_to_downtown` using the Haversine formula to measure geographic distance from Toronto’s downtown, enabling analysis of spatial heterogeneity in fire incidents.  
+
+  * **Incident and structural categorization:** I engineered domain-specific categorical features including `Property_Group` (e.g., Residential, Commercial), `Scale` (based on number of responding apparatus), `Area_of_Origin_Group`, `Fire_Extent_Grouped`, `Smoke_Spread_Binary`, and `Level_Of_Origin_Group`. These transformations reduce high-cardinality fire descriptors into interpretable, risk-relevant categories. 
+
+  * **Safety and system indicators:** I created binary and standardized indicators such as `Alarm_Binary` (fire alarm presence), `Sprinkler_System_Presence`, and `Exposure_Binary` to capture building safety infrastructure and fire spread conditions.  
+
+  * **Risk-based features:** I derived `Ignition_Risk_Group` by ranking ignition sources based on median estimated dollar loss and discretizing them into risk tiers. I also included `Fire_Severity_Arrival` to represent the initial severity of the fire upon TFS arrival.  
+
+* **Preventing Data Leakage:** The full dataset was first split into training, validation, and testing sets. Exploratory analysis and model development were conducted only on the training data. In accordance with our research hypothesis, variables that become available after the fire is brought under control were excluded from the model, such as `Count_of_Persons_Rescued`, `Estimated_Number_Of_Persons_Displaced` and `Business_Impact`. 
+
+### Statistical Tools and Models
+Exploratory data analysis (EDA) was conducted using Python libraries including pandas, seaborn, matplotlib, and plotly. Summary statistics and visualizations were used to understand the distribution of fire caused loss and identify potential relationships between explanatory variables and the financial loss.
+
+To formally assess statistical relationships, hypothesis testing was conducted to evaluate whether the presence of system indicators (e.g., Fire Alarms, Sprinkler Systems) is associated with differences in estimated financial loss.
+
+Several visualization techniques were applied:
+
+* Histograms to analyze the distribution of the target and features
+
+* Boxplots to examine relationships between categorical variables and the loss
+
+* Line plots to explore relationships between continuous variables and identify potential periodic patterns
+
+* Geographic maps to visualize the spatial distribution of fire incidents across Toronto  
+
+* Scatter plots to visualize the actual and predicted fire loss
+
+Additionally, Generalized Additive Models (GAMs) were employed using the pygam library to investigate non-linear relationships between continuous predictors (e.g., temperature, time of day) and the log-transformed financial loss.
+
+For the final modeling stage, Random Forest and XGBoost models are implemented to predict fire caused loss based on features, including incident characteristics, weather conditions, response resources and the engineered feature stated above.
+
+Both models were trained on the log-transformed financial loss to reduce skewness and improve stability. Hyperparameter tuning was performed using cross-validation to optimize predictive performance, with root mean squared error (RMSE) as the primary evaluation metric.
+
+Model performance was assessed using both log-scale and dollar-scale metrics, including RMSE, MAE and $R^2$, in order to evaluate both statistical accuracy and practical interpretability. Across validation experiments, XGBoost demonstrated slightly better predictive performance compared to Random Forest.
+
+Further diagnostic analysis revealed a notable gap between MAE and RMSE, indicating substantial prediction errors at extremes of the loss distribution. Residual analysis showed a left-skewed distribution, suggesting that while the model is generally well-centered for moderate loss events, it tends to overestimate financial loss for some incidents. At the same time, the predicted vs actual scatter plot highlights instability in the zero-loss region, where the model struggles to identify zero losses.
+
+To address potential nonlinearity and tail behavior, a two-stage modeling strategy was explored, where incidents were first classified into low-loss and high-loss categories, followed by separate regression models for each group. However, this approach did not yield performance improvements, likely due to noise near boundaries.
+
+Overall, the one-staged XGBoost model with log-transformed targets provided the most stable and reliable performance. The results suggest that while engineered features capture substantial signal in the data, predictive uncertainty remains high in extreme fire loss and zero loss scenarios.
+
+---
+
+## Results
+
+#### 1. Spatial distribution of fire in Toronto by Year
+
+In this visualization, point size represents the estimated financial loss, while color indicates the control duration. The slider controls the specific year from 2011 to 2024. Hovering over the point, the estimated dollar loss, property type and exact location are provided.
+
+It's the first interactive visualization on my website.
+
+<a href="https://jyw5114.github.io/JSC370-project/viz.html" target="_blank">
+To Interactive Visual 
+</a>
+
+It shows that fire incidents in Toronto are generally spread across the city, although the downtown area exhibits the highest density of incidents. Most fires appear to be controlled relatively quickly. However, incidents associated with larger financial losses and longer control durations are more frequently observed in the downtown and northwestern areas.
+
+The plot suggests that the relationship between fire duration and financial loss is not straightforward. Some incidents with relatively short control durations still result in substantial financial damage, while fires that take longer to control do not necessarily lead to extremely large losses. This pattern indicates that additional factors beyond fire duration likely play an important role in determining the final financial impact of an incident.
+
+#### 2. Distribution of the financial loss
+
+The overall distribution of financial loss is highly right-skewed, as shown in @fig-target. Most incidents result in relatively small losses, while a small number of fires lead to extremely large financial damages.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Distribution of Estimated Dollar Loss
+#| label: fig-target
+#| fig-width: 8
+#| fig-height: 6
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from matplotlib.lines import Line2D
+%matplotlib inline
+import ipywidgets as widgets
+from IPython.display import display
+
+df = pd.read_csv("fire.csv", low_memory=False)
+time_cols = ['TFS_Alarm_Time', 'TFS_Arrival_Time', 'Fire_Under_Control_Time', 'Hourly_Timestamp']
+for col in time_cols:
+    df[col] = pd.to_datetime(df[col])
+df['Control_Duration'] = (df['Fire_Under_Control_Time'] - df['TFS_Arrival_Time']).dt.total_seconds()
+df['Hour_of_Day'] = df['Hourly_Timestamp'].dt.hour
+df['is_weekend'] = df['Hourly_Timestamp'].dt.dayofweek >= 5
+
+def categorize_event(x):
+    x = str(x)
+    if "Fire" in x or x.startswith("FI"):
+        return "Fire"
+    else:
+        return "Other"
+df["Event_Category"] = df["Initial_CAD_Event_Type"].apply(categorize_event)
+df = df[df["Event_Category"]=="Fire"]
+
+df_train_val, df_test = train_test_split(df, test_size=0.2, random_state=42)
+df_train, df_val = train_test_split(df_train_val, test_size=0.2, random_state=42)
+
+df_analysis = df_train[(df_train['Control_Duration'] > 0) & (df_train['Control_Duration'] < 14400)].copy()
+plt.hist(df_analysis[df_analysis["Estimated_Dollar_Loss"] < 1e5]["Estimated_Dollar_Loss"], 
+         bins=20, color='skyblue', edgecolor='black')
+
+plt.title('Distribution of Estimated Dollar Loss')
+plt.xlabel('Estimated Dollar Loss')
+plt.ylabel('Number of Incidents')
+
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+```
+
+To further summarize the key variables used in the analysis, @tbl-summary presents several descriptive statistics including the mean, median, standard deviation, and range.
+```{python}
+#| echo: false
+#| eval: true
+#| label: tbl-summary
+#| tbl-cap: Summary statistics for key variables in the fire incident dataset
+summary = df_analysis[[
+    "Estimated_Dollar_Loss",
+    "Control_Duration",
+    "temperature_2m",
+    "snowfall"
+]].agg(["mean","median","std","min","max"]).T.round(2)
+
+summary
+```
+
+Examining the monthly trend of fire-related losses in @fig-target-month reveals a recurring pattern across many years: a noticeable downward spike appears around the middle of the year, where total losses temporarily decrease before rising again. This suggests the presence of a potential seasonal or periodic effect. Overall, the total financial losses remain relatively stable throughout the study period, with a noticeable increase between 2018 and 2021, followed by a slight decrease from 2022 to 2024.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Monthly Trend of Fire Caused Loss
+#| label: fig-target-month
+#| fig-width: 8
+#| fig-height: 4
+df_analysis["Year_Month"] = df_analysis["TFS_Alarm_Time"].dt.to_period("M")
+monthly_loss = (
+    df_analysis
+    .groupby("Year_Month")["Estimated_Dollar_Loss"]
+    .median()
+    .reset_index()
+)
+monthly_loss["Year_Month"] = monthly_loss["Year_Month"].astype(str)
+plt.figure(figsize=(14,6))
+sns.lineplot(
+    data=monthly_loss,
+    x=range(len(monthly_loss)),
+    y="Estimated_Dollar_Loss"
+)
+plt.yscale("log")
+plt.xticks(
+    ticks=range(0, len(monthly_loss), 12),
+    labels=monthly_loss["Year_Month"][::12],
+    rotation=45
+)
+plt.xlabel("Year")
+plt.ylabel("Median Loss")
+plt.title("Monthly Trend of Fire Caused Loss (2011-2024)")
+plt.show()
+```
+
+
+#### 3. Temporal Features
+
+By analyzing the relationship between month, temperature, and financial loss in @fig-mon-temp, a clear periodic pattern can be observed. While temperature follows a strong seasonal cycle across months, it also captures underlying variation more directly, as substantial temperature differences can exist within the same month.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Seasonal Pattern of Fire Loss and Temperature
+#| label: fig-mon-temp
+
+from matplotlib.lines import Line2D
+df_analysis["Month"] = df_analysis["TFS_Alarm_Time"].dt.month
+monthly_stats = (
+    df_analysis
+    .groupby("Month")
+    .agg(
+        median_loss=("Estimated_Dollar_Loss", "median"),
+        mean_temperature=("temperature_2m", "mean")
+    )
+    .reset_index()
+)
+fig, ax1 = plt.subplots(figsize=(10,6))
+line1 = sns.lineplot(
+    data=monthly_stats,
+    x="Month",
+    y="median_loss",
+    marker="o",
+    ax=ax1,
+    color="tab:blue"
+)
+
+ax1.set_yscale("log")
+ax1.set_xlabel("Month")
+ax1.set_ylabel("Median Estimated_Dollar_Loss", color="tab:blue")
+ax1.set_xticks(range(1,13))
+ax1.set_title("Seasonal Pattern of Fire Estimated_Dollar_Loss and Temperature")
+ax1.tick_params(axis='y', labelcolor="tab:blue")
+
+ax2 = ax1.twinx()
+line2 = sns.lineplot(
+    data=monthly_stats,
+    x="Month",
+    y="mean_temperature",
+    marker="s",
+    linestyle="--",
+    ax=ax2,
+    color="tab:red"
+)
+
+ax2.set_ylabel("Average Temperature (°C)", color="tab:red")
+ax2.tick_params(axis='y', labelcolor="tab:red")
+legend_elements = [
+    Line2D([0], [0], color="tab:blue", marker="o", label="Median Estimated_Dollar_Loss"),
+    Line2D([0], [0], color="tab:red", marker="s", linestyle="--", label="Average Temperature")
+]
+ax1.legend(handles=legend_elements, loc="upper left")
+
+plt.grid(alpha=0.3)
+plt.show()
+```
+
+@fig-day reveals diurnal variations in fire-related dollar losses, with incidents occurring during the night showing a lower frequency but a higher median loss. To represent this cyclical nature effectively, I encoded the 'Hour of Day' as a periodic variable using sine and cosine transformations in the model.
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Daily Pattern of Fire Loss
+#| label: fig-day
+#| fig-width: 8
+#| fig-height: 4
+df_hour = df_analysis.groupby("Hour_of_Day").agg(
+    fire_count=("Estimated_Dollar_Loss", "count"),
+    avg_loss=("Estimated_Dollar_Loss", "mean"),
+    median_loss=("Estimated_Dollar_Loss", "median")
+).reset_index()
+
+fig, ax1 = plt.subplots(figsize=(10,5))
+ax1.bar(df_hour["Hour_of_Day"], df_hour["fire_count"], alpha=0.6)
+ax1.set_xlabel("Hour of Day")
+ax1.set_ylabel("Number of Fires")
+
+ax2 = ax1.twinx()
+ax2.plot(df_hour["Hour_of_Day"], df_hour["median_loss"], marker='o')
+ax2.set_ylabel("Median Loss ($)")
+
+plt.title("Fire Incidents and Loss by Hour of Day")
+plt.show()
+```
+
+#### 4. Response Time across Wards and Loss Levels
+
+It's the second interactive visualization on my website.
+
+<a href="https://jyw5114.github.io/JSC370-project/viz.html" target="_blank">
+To Interactive Visual 
+</a>
+
+Overall, median response times are similar across loss levels in most wards. However, Wards 24, 25, 26, and 39 show consistently slower responses, while Wards 13, 27, 28, and 29 are generally faster.
+
+Some wards (15, 16, 22, 33, 36) exhibit longer response times specifically for high-loss incidents, suggesting that delays in these areas may contribute more directly to severe outcomes. In contrast, wards such as 4 and 13 maintain relatively fast response times even in high-loss cases, indicating that factors like fire severity at arrival or asset vulnerability may play a larger role than response delay.
+
+Response times are also more variable in Wards 1–15 compared to 26–44, reflecting greater operational variability. Additionally, many extreme high-loss outliers are associated with vehicle fires, suggesting higher volatility and rapid escalation in these incidents.
+
+#### 5. Weather Effects
+
+The weather also appears to influence the loss. @fig-snow shows a slight increase in financial loss when snowfall reaches moderate or higher levels. Snow may slow response times or create additional operational challenges, potentially allowing fires to spread before they are fully controlled. However, the precipitation doesn't show the same pattern, with different levels of rainfall generally associated with somewhat similar losses.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Impact of Snowfall on Loss
+#| label: fig-snow
+#| fig-width: 8
+#| fig-height: 6
+df_analysis['Snow_Level'] = pd.cut(df_analysis['snowfall'], 
+                                   bins=[-1, 0, 2, 5], 
+                                   labels=['None', 'Light', 'Moderate'])
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=df_analysis, x='Snow_Level', y='Estimated_Dollar_Loss')
+plt.title('Impact of Snowfall Severity on Estimated_Dollar_Loss')
+plt.yscale('log')
+plt.show()
+```
+
+
+#### 6. Fire Suppression Resources and Property Uses
+This Dashboard presents a parallel categories (Sankey) plot, which is used to examine how `Property_Group`,  `Sprinkler_System_Presence` and `Scale` jointly interact and influence fire loss outcomes. Here, incident scale is defined by the number of responding apparatus: "Small" (≤ 5) and "Large" (> 5). Each path in the diagram represents a combination of these attributes, while the color encoding reflects the Loss_Level (Low, Medium, High by 0.33 and 0.66 quantiles). 
+
+<a href="https://jsc370-project.onrender.com" target="_blank">
+Open Dashboard
+</a>
+
+The underlying risk of a specific fire scale is approximately similarly distributed across the three property groups. In general, larger-scale incidents are more likely to be associated with higher financial losses. Properties equipped with sprinkler systems tend to exhibit a relatively lower risk of generating large losses.
+
+In Residential and Commercial groups, as fire suppression improves from No to Partial and to Full sprinkler coverage, the proportion of high-loss (dark purple) outcomes decreases in cases of large scale. This suggests that sprinkler systems play a strong mitigating role in reducing severe financial loss when incidents escalate. However, this relationship is not equally evident in the Other property category. 
+
+#### 7. Other Effects
+Besides all the findings mentioned above, I also examined other categorical features including `Area_of_Origin_Group`, `Smoke_Spread_Binary`,`Level_Of_Origin_Group`, `Ignition_Risk_Group`, and `Alarm_Binary`, all of which shows different loss distribution across groups, with a confirmation from hypothesis testing..
+
+#### 8. Correlation Matrix
+
+The correlation matrix in @fig-corr shows that control duration and the number of responding apparatus have the strongest positive relationship with financial loss, while weather variables show very weak correlations. This does not preclude the importance of weather condition. As previously explored in the snowfall analysis (@fig-snow), environmental impact manifests through non-linear threshold effects rather than direct linear scaling. Therefore, these features should be retained for machine learning models capable of capturing complex interactions, such as those between freezing temperatures and operational response challenges.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: Correlation Matrix of Numerical Variables
+#| label: fig-corr
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
+    return 2 * R * np.arcsin(np.sqrt(a))
+
+df_analysis["Response_Time"] = (
+    df_analysis["TFS_Arrival_Time"] - df_analysis["TFS_Alarm_Time"]
+).dt.total_seconds() / 60
+
+df_analysis = df_analysis[df_analysis["Response_Time"]>=0]
+
+df_analysis["Hour_sin"] = np.sin(2*np.pi*df_analysis["Hour_of_Day"]/24)
+df_analysis["Hour_cos"] = np.cos(2*np.pi*df_analysis["Hour_of_Day"]/24)
+
+numeric_cols = [
+    "Estimated_Dollar_Loss",
+    "Control_Duration",
+    "temperature_2m",
+    "snowfall",
+    "precipitation",
+    "Number_of_responding_personnel",
+    "Number_of_responding_apparatus",
+    "Hour_sin",
+    "Hour_cos",
+    "Response_Time", 
+]
+
+corr_matrix = df_analysis[numeric_cols].corr()
+
+plt.figure(figsize=(8,6))
+sns.heatmap(
+    corr_matrix,
+    annot=True,
+    cmap="coolwarm",
+    fmt=".2f",
+    linewidths=0.5
+)
+
+plt.title("Correlation Matrix of Key Numerical Variables")
+plt.show()
+```
+
+#### 9. Non-linear Weather and Temporal Effects (GAM)
+While linear correlations for weather variables appear weak, Generalized Additive Models (GAMs) reveal that their influence is highly non-linear. As shown in @fig-gam, the partial dependence plots illustrate how specific predictors drive financial loss once other factors are controlled for.
+
+* Diurnal Cycle: The effect of time of a day is notably "wavy," with a clear peak in loss potential during the early morning hours. This confirms that fires occurring in the deep of night are associated with higher financial severity, likely due to delayed detection.
+
+* Temperature Thresholds: The model captures a "hockey-stick" effect for temperature. Below -20°C, the predicted loss surges dramatically, whereas between -10°C and 30°C, the effect remains relatively stable. This suggests that only extreme cold significantly hinders suppression or increases fire intensity.
+
+* Snowfall Complexity: Financial loss trends upward as snowfall increases from 0 to 2.5 units. However, the widening confidence intervals at higher snowfall levels indicate data sparsity, suggesting that while heavy snow correlates with higher loss, these extreme events are less frequent.
+
+```{python}
+#| echo: false
+#| eval: true
+#| fig-cap: GAM Partial Dependence Plots for Temporal and Weather Features
+#| label: fig-gam
+#| fig-width: 18
+#| fig-height: 5
+
+from pygam import LinearGAM, s
+df_gam = df_analysis[['Hour_of_Day', 'temperature_2m', 'snowfall', 'Estimated_Dollar_Loss']].dropna()
+X_gam = df_gam[['Hour_of_Day', 'temperature_2m', 'snowfall']].values
+y_gam = np.log1p(df_gam['Estimated_Dollar_Loss'].values)
+gam = LinearGAM(
+    s(0, n_splines=12) +  # Hour_of_Day
+    s(1, n_splines=12) +  # temperature_2m
+    s(2, n_splines=12)    # snowfall
+).fit(X_gam, y_gam)
+
+features_gam = ['Hour_of_Day', 'temperature_2m', 'snowfall']
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+for i, ax in enumerate(axes):
+    XX = gam.generate_X_grid(term=i)
+    pd_effect = gam.partial_dependence(term=i, X=XX)
+    _, ci = gam.partial_dependence(term=i, X=XX, width=0.95)
+
+    ax.plot(XX[:, i], pd_effect, color='blue', lw=2)
+    ax.plot(XX[:, i], ci, color='blue', ls='--', lw=1, alpha=0.7)
+    ax.fill_between(XX[:, i], ci[:, 0], ci[:, 1], color='blue', alpha=0.1)
+
+    ax.set_xlabel(features_gam[i])
+    ax.set_ylabel("Partial Effect on Log Loss")
+    ax.set_title(f"GAM: {features_gam[i]}")
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+```
+
+
+### Modeling
+After performing model selections on the two model Families, XGBoost with `model__colsample_bytree`: 0.7, `model__learning_rate`: 0.05, `model__max_depth`: 4, `model__min_child_weight`: 1, `model__n_estimators`: 400, `model__subsample`: 0.7 stands out. Model performance on the validation set is summarized in @tbl-model.
+
+```{python}
+#| echo: false
+#| eval: true
+#| label: tbl-model
+#| tbl-cap: Summary Statistics for the Best Models in the Family
+import seaborn as sns
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error, r2_score
+from xgboost import XGBRegressor
+
+downtown_lat = 43.6532
+downtown_lon = -79.3832
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
+    return 2 * R * np.arcsin(np.sqrt(a))
+
+def categorize_property(x):
+    if pd.isna(x):
+        return "Other"
+    
+    code = x.split(" - ")[0].strip()
+    
+    residential = {"301", "302", "303", "321", "322", "323", "311", "331"}
+    commercial = {"151", "501", "405", "334"}
+    vehicles = {"901", "902", "903", "837"}
+    garages = {"365", "603"}
+    infra = {"896", "144", "846", "891"}
+    waste = {"848"}
+    
+    if code in residential:
+        return "Residential"
+    elif code in commercial:
+        return "Commercial"
+    elif code in vehicles:
+        return "Vehicles"
+    elif code in infra:
+        return "Infrastructure"
+    elif code in waste:
+        return "Waste"
+    elif code in garages:
+        return "Garages"
+    else:
+        return "Other"
+
+def map_alarm(x):
+    if "1 -" in str(x):
+        return "Has Alarm"
+    if "2 -" in str(x):
+        return "No Alarm"
+    return "Unknown"
+
+def map_fire_severity(x):
+    if pd.isna(x):
+        return np.nan
+    x = str(x)
+    if x.startswith("1 -") or x.startswith("2 -") or x.startswith("3 -"):
+        return "Low"
+    if x.startswith("4 -") or x.startswith("5 -") or x.startswith("7 -") or x.startswith("8 -"):
+        return "High"
+    return "Unknown"
+
+def map_level_of_origin(x):
+    if pd.isna(x):
+        return np.nan
+    x = str(x)
+    if x in ["999", "996", "997", "998"]:
+        return "Unknown"
+    if x.startswith("B"):
+        return "Basement"
+    try:
+        val = int(x)
+    except:
+        return "Unknown"
+    if val <= 2:
+        return "Low"
+    elif val <= 10:
+        return "Mid"
+    elif val <= 20:
+        return "High"
+    else:
+        return "Very High"
+
+def map_extent_fire(x):
+    if pd.isna(x):
+        return "Unknown" 
+    if x in [
+        "1 - Confined to object of origin",
+        "2 - Confined to part of room/area of origin"
+    ]:
+        return "Confined"
+    elif x in [
+        "3 - Spread to entire room of origin",
+        "4 - Spread beyond room of origin, same floor",
+        "9 - Confined to roof/exterior structure"
+    ]:
+        return "Room Level Spread"
+    elif x in [
+        "5 - Multi unit bldg: spread beyond suite of origin but not to separated suite(s)",
+        "6 - Multi unit bldg: spread to separate suite(s)",
+        "7 - Spread to other floors, confined to building",
+        "8 - Entire Structure"
+        "10 - Spread beyond building of origin",
+        "11 - Spread beyond building of origin, resulted in exposure fire(s)",
+    ]:
+        return "Building Level Spread"
+    else:
+        return "Unknown"
+
+def bin_risk(r):
+    if pd.isna(r):
+        return "Unknown"
+    elif r <= 10:
+        return "High Risk"
+    elif r <= 50:
+        return "Medium Risk"
+    else:
+        return "Low Risk"
+
+def preprocess_fire(df):
+    df = df.copy()
+    time_cols = [
+        'TFS_Alarm_Time',
+        'TFS_Arrival_Time',
+        'Fire_Under_Control_Time',
+        'Hourly_Timestamp'
+    ]
+
+    for col in time_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+
+
+    df["Hour_of_Day"] = df["Hourly_Timestamp"].dt.hour
+    df["is_weekend"] = df["Hourly_Timestamp"].dt.dayofweek >= 5
+    df["Month"] = df["Hourly_Timestamp"].dt.month
+    df["Year_Month"] = df["TFS_Alarm_Time"].dt.to_period("M")
+
+
+    df["Control_Duration"] = (
+        df["Fire_Under_Control_Time"] - df["TFS_Arrival_Time"]
+    ).dt.total_seconds()
+
+    df["Event_Category"] = df["Initial_CAD_Event_Type"].astype(str).apply(
+        lambda x: "Fire" if ("Fire" in x or x.startswith("FI")) else "Other"
+    )
+    df = df[df["Event_Category"] == "Fire"]
+
+
+    df = df[(df["Control_Duration"] > 0) & (df["Control_Duration"] < 14400)]
+
+    df["Heavy_Snow"] = (df["snowfall"] > 0.01).astype(int)
+    
+    df["Property_Group"] = df["Property_Use"].apply(categorize_property)
+
+    df["Scale"] = np.where(
+        df["Number_of_responding_apparatus"] <= 5,
+        "Small",
+        "Large"
+    )
+    df = df.dropna(subset=["Estimated_Dollar_Loss", "Control_Duration"])
+    df["Sprinkler_System_Presence"] = df["Sprinkler_System_Presence"].fillna("9 - Undetermined")
+    df["Alarm_Binary"] = df["Fire_Alarm_System_Presence"].apply(map_alarm)
+    df["Fire_Severity_Arrival"] = df["Status_of_Fire_On_Arrival"].apply(map_fire_severity)
+
+    top5_origin = ['24 - Cooking Area or Kitchen', '64 - Porch or Balcony',
+       '44 - Trash, Rubbish Storage (inc garbage chute room, garbage/industri',
+       '81 - Engine Area',
+       '22 - Sleeping Area or Bedroom (inc. patients room, dormitory, etc)']
+
+    df["Area_of_Origin_Group"] = np.where(
+        df["Area_of_Origin"].isin(top5_origin),
+        df["Area_of_Origin"],
+        "Other"
+    )
+    df["Level_Of_Origin_Group"] = df["Level_Of_Origin"].apply(map_level_of_origin)
+
+    df["Hour_sin"] = np.sin(2*np.pi*df["Hour_of_Day"]/24)
+    df["Hour_cos"] = np.cos(2*np.pi*df["Hour_of_Day"]/24)
+
+    df["Apparatus_per_person"] = (
+        df["Number_of_responding_apparatus"] /
+        (df["Number_of_responding_personnel"] + 1)
+    )
+
+    df["TFS_Alarm_Time"] = pd.to_datetime(df["TFS_Alarm_Time"])
+    df["TFS_Arrival_Time"] = pd.to_datetime(df["TFS_Arrival_Time"])
+
+    df["Response_Time"] = (
+        df["TFS_Arrival_Time"] - df["TFS_Alarm_Time"]
+    ).dt.total_seconds() / 60
+
+    df["distance_to_downtown"] = haversine(
+        df["Latitude"],
+        df["Longitude"],
+        downtown_lat,
+        downtown_lon
+    )
+
+    df = df[df["distance_to_downtown"]<100]
+    df["Smoke_Spread_Code"] = df["Smoke_Spread"].str.extract(r"(\d+)").astype(float)
+    df["Smoke_Spread_Binary"] = df["Smoke_Spread_Code"].apply(
+        lambda x: "Large"
+        if x in [6, 7, 8, 9, 10]
+        else ("Small" if not pd.isna(x) else "Unknown")
+    )
+
+    df["Fire_Extent_Grouped"] = df["Extent_Of_Fire"].apply(map_extent_fire)
+
+    top = (
+        df.dropna(subset=["Ignition_Source", "Estimated_Dollar_Loss"])
+        .groupby("Ignition_Source")["Estimated_Dollar_Loss"]
+        .median()
+        .sort_values(ascending=False)
+    )
+
+    df["Ignition_Source_Rank"] = df["Ignition_Source"].map(top.rank(ascending=False))
+    df["Ignition_Risk_Group"] = df["Ignition_Source_Rank"].apply(bin_risk)
+
+    df["Exposure_Binary"] = (df["Exposures"] > 0).astype(int)
+
+    return df
+
+df = pd.read_csv("fire.csv")
+df_train_val, df_test = train_test_split(df, test_size=0.2, random_state=42)
+df_train, df_val = train_test_split(df_train_val, test_size=0.2, random_state=42)
+
+features = [
+    "Control_Duration",
+    "Number_of_responding_apparatus",
+    "Number_of_responding_personnel",
+    "Sprinkler_System_Presence",
+    "Alarm_Binary",
+    "Fire_Severity_Arrival",
+    "Area_of_Origin_Group",
+    "Property_Group",
+    "temperature_2m",
+    "Heavy_Snow",
+    "precipitation",
+    "Hour_sin",
+    "Hour_cos",
+    "Apparatus_per_person",
+    "Response_Time",
+    "is_weekend",
+    "Building_Status",
+    "distance_to_downtown",
+    "Incident_Ward",
+    "Smoke_Spread_Binary",
+    "Fire_Extent_Grouped",
+    "Ignition_Risk_Group",
+    "Method_Of_Fire_Control",
+]
+
+df_train_clean = preprocess_fire(df_train)
+df_val_clean = preprocess_fire(df_val)
+df_test_clean = preprocess_fire(df_test)
+df_train_model = df_train_clean[features + ["Estimated_Dollar_Loss"]].dropna()
+df_val_model = df_val_clean[features + ["Estimated_Dollar_Loss"]].dropna()
+df_test_model = df_test_clean[features + ["Estimated_Dollar_Loss"]].dropna()
+
+X_train = df_train_model.drop(columns=["Estimated_Dollar_Loss"])
+y_train = np.log1p(df_train_model["Estimated_Dollar_Loss"])
+
+X_val = df_val_model.drop(columns=["Estimated_Dollar_Loss"])
+y_val = np.log1p(df_val_model["Estimated_Dollar_Loss"])
+
+X_test = df_test_model.drop(columns=["Estimated_Dollar_Loss"])
+y_test = np.log1p(df_test_model["Estimated_Dollar_Loss"])
+
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
+
+categorical = [
+    "Sprinkler_System_Presence",
+    "Alarm_Binary",
+    "Fire_Severity_Arrival",
+    "Area_of_Origin_Group",
+    "Property_Group",
+    "Heavy_Snow",
+    "is_weekend",
+    "Building_Status",
+    "Incident_Ward",
+    "Smoke_Spread_Binary",
+    "Fire_Extent_Grouped",
+    "Ignition_Risk_Group",
+    "Method_Of_Fire_Control"
+]
+
+numeric = [
+    "Control_Duration",
+    "Number_of_responding_apparatus",
+    "Number_of_responding_personnel",
+    "temperature_2m",
+    "precipitation",
+    "Hour_sin",
+    "Hour_cos",
+    "Apparatus_per_person",
+    "Response_Time",
+    "distance_to_downtown"
+]
+
+preprocess = ColumnTransformer(
+    transformers=[
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), categorical),
+        ("num", "passthrough", numeric)
+    ]
+)
+
+rf_pipeline = Pipeline([
+    ("prep", preprocess),
+    ("model", RandomForestRegressor(random_state=42))
+])
+
+rf_param_grid = {
+    "model__n_estimators": [200, 400],
+    "model__max_depth": [None, 10, 20],
+    "model__max_features": ["sqrt", 0.5],
+    "model__min_samples_leaf": [1, 3]
+}
+
+rf_grid = GridSearchCV(
+    rf_pipeline,
+    rf_param_grid,
+    cv=5,
+    scoring="neg_root_mean_squared_error",
+    n_jobs=-1
+)
+
+rf_grid.fit(X_train, y_train)
+
+# print("Best RF params:", rf_grid.best_params_)
+# print("Best RF CV RMSE:", -rf_grid.best_score_)
+
+preprocess = ColumnTransformer(
+    transformers=[
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), categorical),
+        ("num", "passthrough", numeric)
+    ]
+)
+
+xgb_pipeline = Pipeline([
+    ("prep", preprocess),
+    ("model", XGBRegressor(
+        random_state=42,
+        verbosity=0,
+        tree_method="hist"
+    ))
+])
+
+xgb_param_grid = {
+    "model__max_depth": [4, 6, 8],
+    "model__learning_rate": [0.05, 0.1],
+    "model__n_estimators": [400, 800],
+    "model__subsample": [0.7, 0.9],
+    "model__colsample_bytree": [0.7, 1.0],
+    "model__min_child_weight": [1, 5],
+}
+
+xgb_grid = GridSearchCV(
+    xgb_pipeline,
+    xgb_param_grid,
+    cv=5,
+    scoring="neg_root_mean_squared_error",
+    n_jobs=-1
+)
+
+xgb_grid.fit(X_train, y_train)
+
+# print("Best XGB params:", xgb_grid.best_params_)
+# print("Best XGB CV RMSE:", -xgb_grid.best_score_)
+
+from sklearn.metrics import mean_squared_error, r2_score
+
+# RF
+best_rf = rf_grid.best_estimator_
+rf_pred_log = best_rf.predict(X_val)
+
+# XGB
+best_xgb = xgb_grid.best_estimator_
+xgb_pred_log = best_xgb.predict(X_val)
+
+y_val_dollar = np.expm1(y_val)
+
+rf_pred_dollar = np.expm1(rf_pred_log)
+xgb_pred_dollar = np.expm1(xgb_pred_log)
+
+# RMSE
+rf_rmse_log = np.sqrt(mean_squared_error(y_val, rf_pred_log))
+xgb_rmse_log = np.sqrt(mean_squared_error(y_val, xgb_pred_log))
+
+rf_rmse_dollar = np.sqrt(mean_squared_error(y_val_dollar, rf_pred_dollar))
+xgb_rmse_dollar = np.sqrt(mean_squared_error(y_val_dollar, xgb_pred_dollar))
+
+# R2
+rf_r2_log = r2_score(y_val, rf_pred_log)
+xgb_r2_log = r2_score(y_val, xgb_pred_log)
+
+rf_r2_dollar = r2_score(y_val_dollar, rf_pred_dollar)
+xgb_r2_dollar = r2_score(y_val_dollar, xgb_pred_dollar)
+
+summary_df = pd.DataFrame({
+    "Model": ["Random Forest", "XGBoost"],
+    "CV RMSE (log)": [
+        -rf_grid.best_score_,
+        -xgb_grid.best_score_
+    ],
+    "Val RMSE (log)": [
+        rf_rmse_log,
+        xgb_rmse_log
+    ],
+    "Val RMSE ($)": [
+        rf_rmse_dollar,
+        xgb_rmse_dollar
+    ],
+    "Val R2 (log)": [
+        rf_r2_log,
+        xgb_r2_log
+    ],
+    "Val R2 ($)": [
+        rf_r2_dollar,
+        xgb_r2_dollar
+    ]
+})
+
+print(summary_df.round(3))
+```
+
+The most important features for the XGBoost model are presented in @fig-importance. The predicted versus actual losses on the test set (log scale) are shown in @fig-pred-actual, illustrating increased dispersion at extreme values, particularly around zero. The detailed test statistics are summarized in @tbl-test. At the same time, instability is observed in the zero-loss region in @fig-pred-actual, likely reflecting noise or inconsistencies in recorded zero-loss values.
+
+```{python}
+#| echo: false
+#| eval: true
+#| label: fig-importance
+#| fig-cap: Feature Importance of the Selected Model
+importances = best_xgb.named_steps["model"].feature_importances_
+names = best_xgb.named_steps["prep"].get_feature_names_out()
+
+idx = np.argsort(importances)[-15:]
+
+plt.barh(np.array(names)[idx], importances[idx])
+plt.title("Top 15 Feature Importances in XGB")
+plt.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+#| label: tbl-test
+#| tbl-cap: Test Set Performance of the XGBoost Model
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+# predictions
+test_pred_log = best_xgb.predict(X_test)
+
+test_pred_dollar = np.expm1(test_pred_log)
+y_test_dollar = np.expm1(y_test)
+
+# RMSE
+test_rmse_log = np.sqrt(mean_squared_error(y_test, test_pred_log))
+test_rmse_dollar = np.sqrt(mean_squared_error(y_test_dollar, test_pred_dollar))
+
+# MAE
+test_mae_log = mean_absolute_error(y_test, test_pred_log)
+test_mae_dollar = mean_absolute_error(y_test_dollar, test_pred_dollar)
+
+# R2
+test_r2_log = r2_score(y_test, test_pred_log)
+test_r2_dollar = r2_score(y_test_dollar, test_pred_dollar)
+
+test_results = pd.DataFrame({
+    "Metric": [
+        "RMSE (log)",
+        "MAE (log)",
+        "R2 (log)",
+        "RMSE ($)",
+        "MAE ($)",
+        "R2 ($)"
+    ],
+    "Value": [
+        test_rmse_log,
+        test_mae_log,
+        test_r2_log,
+        test_rmse_dollar,
+        test_mae_dollar,
+        test_r2_dollar
+    ]
+})
+
+print(test_results.round(3))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+#| label: fig-pred-actual
+#| fig-cap: Predicted Loss vs Actual Loss by XGBoost
+plt.figure(figsize=(6,6))
+
+plt.scatter(y_test, test_pred_log, alpha=0.4)
+
+plt.plot(
+    [y_test.min(), y_test.max()],
+    [y_test.min(), y_test.max()],
+    linestyle="--"
+)
+
+plt.title("XGBoost Test Set (log scale)")
+plt.xlabel("Actual log loss")
+plt.ylabel("Predicted log loss")
+
+plt.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+#| label: fig-rez
+#| fig-cap: Distribution of Residuals (actual minus predicted log loss)
+residuals = y_test - test_pred_log
+
+plt.figure(figsize=(6,4))
+plt.hist(residuals, bins=50)
+plt.title("Test Residual Distribution (log)")
+plt.xlabel("Residual")
+plt.ylabel("Frequency")
+plt.show()
+```
+
+## Conclusions and Summary
+This study shows that fire-related financial loss in Toronto is driven by a combination of response efficiency, property characteristics, and fire severity. While weather effects appear weak in linear analysis, they exhibit clear non-linear impacts under extreme conditions.
+
+The XGBoost model achieves moderate predictive performance ($R^2 \approx 0.53$ in log scale and $0.38$ in the original scale), indicating that although key patterns are captured, substantial uncertainty remains -- particularly for extreme-loss incidents. This reflects both data noise and unobserved factors.
+
+From a practical perspective, the results suggest that improving early detection systems, optimizing response in slower wards, and preparing for extreme weather conditions could help reduce financial loss. Overall, the model provides useful early estimates, but should be used as a decision-support tool rather than a precise predictor.

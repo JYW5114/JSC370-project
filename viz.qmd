@@ -171,7 +171,7 @@ fig.update_layout(
 fig.show()
 ```
 
-As shown in @fig-response-ward, overall, median response times are relatively similar between the two groups in most wards. Wards 24, 25, 26 and 39 show obvious slower response compared to the overall median of all wards. Wards 13, 27, 28 and 29 generally respond faster than the others.
+As shown in @fig-resp, overall, median response times are relatively similar between the two groups in most wards. Wards 24, 25, 26 and 39 show obvious slower response compared to the overall median of all wards. Wards 13, 27, 28 and 29 generally respond faster than the others.
 
 Certain wards such as 15, 16, 22, 33, and 36 show noticeably higher response times for high-loss incidents. This pattern suggests that these areas may require improved situational awareness or prioritization strategies when high-damage incidents occur, as delays in these wards are more strongly associated with larger financial consequences.
 
@@ -196,6 +196,8 @@ Each path in the diagram represents a combination of these attributes, while the
 Open Dashboard
 </a>
 
+[Note: Due to the cold start on Render, it may take several minutes to load.]
+
 It allows users to examine the data from different perspectives:
 
 ##### Sprinkler System (All vs. specific types)
@@ -208,5 +210,5 @@ It allows users to examine the data from different perspectives:
 
 The underlying risk of a specific fire scale is approximately similarly distributed across the three property groups. In general, larger-scale incidents are more likely to be associated with higher financial losses. Properties equipped with sprinkler systems tend to exhibit a relatively lower risk of generating large losses.
 
-In Residential and Commercial groups, as fire suppression improves from No tp Partial and to Full sprinkler coverage, the proportion of high-loss (dark purple) outcomes decreases in cases of large scale. This suggests that sprinkler systems play a strong mitigating role in reducing severe financial loss when incidents escalate. However, this relationship is not equally evident in the Other property category. 
+In Residential and Commercial groups, as fire suppression improves from No to Partial and to Full sprinkler coverage, the proportion of high-loss (dark purple) outcomes decreases in cases of large scale. This suggests that sprinkler systems play a strong mitigating role in reducing severe financial loss when incidents escalate. However, this relationship is not equally evident in the Other property category. 
 
