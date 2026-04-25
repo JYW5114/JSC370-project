@@ -8,7 +8,7 @@ website:
     left:
       - text: "Home"
         href: index.qmd
-      - text: "Report"
+      - text: "Full Project"
         href: report.qmd
       - text: "Visualizations for HW5"
         href: viz.qmd
@@ -18,14 +18,14 @@ website:
       - text: "My Project Home"
         href: https://github.com/JYW5114/JSC370-project
       - icon: file-earmark-pdf
-        href: https://github.com/JYW5114/JSC370-project
+        href: https://github.com/JYW5114/JSC370-project/blob/main/docs/JSC370_report.pdf
       - text: "Full Report"
-        href: https://github.com/JYW5114/JSC370-project
+        href: https://github.com/JYW5114/JSC370-project/blob/main/docs/JSC370_report.pdf
       - icon: escape
         href: https://github.com/JYW5114/JSC370-project
       - text: "Dashboard"
         href: https://jsc370-finalproject.onrender.com/
-      #   target: _blank
+        target: _blank
 
   page-footer:
     center: "Copyright © 2026 Yiwei Jiang. All rights reserved."
