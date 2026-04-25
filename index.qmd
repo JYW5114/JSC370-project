@@ -10,15 +10,79 @@ execute:
 
 This is my JSC370 Final Project website.
 
-## Introduction
+# 🔥 When Fire Strikes: What Drives Financial Loss?
 
-This project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.
 
-**Research Questions:**
-What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain types of properties or incident types associated with higher losses?
+## Project Overview
 
-**Research Hypothesis:**
-The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation.
+Every fire incident leaves behind more than just physical damage - it carries a financial impact that affects individuals, businesses, and the city as a whole.
+
+This project explores **what drives the financial loss of fire incidents in Toronto**, using data, visualization, and machine learning.
+
+Rather than waiting for official damage assessments, this work asks:
+
+> **Can we estimate financial loss immediately after a fire is controlled?**
+
+---
+
+## Why This Matters
+
+Understanding financial loss is critical for:
+
+- **Urban planning** -- where should resources go?
+- **Emergency response** -- what situations require priority?
+- **Economic resilience** -- how can losses be minimized?
+
+Faster estimates = faster decisions.
+
+---
+
+## Research Questions
+
+This project focuses on three key questions:
+
+- What factors influence the financial loss of fire incidents?
+- How do **weather, property type, and response resources** affect outcomes?
+- Are certain spatial and structural features consistently associated with higher losses?
+
+---
+
+## Hypothesis
+
+> The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed.
+> **Incident characteristics + response data + environmental conditions** contain enough information to estimate financial loss.
+
+If true, this enables:
+
+- Early economic impact estimation  
+- Smarter resource allocation  
+- Data-driven emergency management  
+
+---
+
+## What This Project Includes
+
+- Exploratory Data Analysis (EDA)
+- Statistical Modeling and Machine learning
+- Interactive visualizations
+
+---
+
+## Explore the Project
+
+Use the navigation bar above to explore:
+
+- Full Project Report (accessible via the PDF link in the top right corner)
+- Interactive Visualizations  
+
+---
+
+## Final Thought
+
+Fire incidents are unpredictable - but their impact doesn't have to be.
+
+This project turns raw incident data into **actionable insight**, helping us better understand and potentially reduce the cost of fire.
+
 
 
 

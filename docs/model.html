@@ -3959,19 +3959,19 @@ font-size: 15px;
 </header>
 
 
-<div id="efca85c7" class="cell" data-execution_count="5">
+<div id="7db0f8dd" class="cell" data-execution_count="5">
 <div class="cell-output cell-output-stdout">
 <pre><code>Best RF params: {&#39;model__max_depth&#39;: 20, &#39;model__max_features&#39;: &#39;sqrt&#39;, &#39;model__min_samples_leaf&#39;: 1, &#39;model__n_estimators&#39;: 400}
 Best RF CV RMSE: 2.4928575098140002</code></pre>
 </div>
 </div>
-<div id="f97692ce" class="cell" data-execution_count="6">
+<div id="08386397" class="cell" data-execution_count="6">
 <div class="cell-output cell-output-stdout">
 <pre><code>Best XGB params: {&#39;model__colsample_bytree&#39;: 0.7, &#39;model__learning_rate&#39;: 0.05, &#39;model__max_depth&#39;: 4, &#39;model__min_child_weight&#39;: 1, &#39;model__n_estimators&#39;: 400, &#39;model__subsample&#39;: 0.7}
 Best XGB CV RMSE: 2.474125355450178</code></pre>
 </div>
 </div>
-<div id="22cd9bbc" class="cell" data-execution_count="7">
+<div id="2da67b1c" class="cell" data-execution_count="7">
 <div class="cell-output cell-output-stdout">
 <pre><code>           Model  CV RMSE (log)  Val RMSE (log)  Val RMSE ($)  Val R2 (log)  \
 0  Random Forest          2.493           2.414    125686.481         0.515   
@@ -3982,7 +3982,7 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 1       0.326  </code></pre>
 </div>
 </div>
-<div id="fb277795" class="cell" data-execution_count="8">
+<div id="10a22eb4" class="cell" data-execution_count="8">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -3991,7 +3991,7 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 </div>
 </div>
 </div>
-<div id="3f9f8716" class="cell" data-execution_count="9">
+<div id="026f2205" class="cell" data-execution_count="9">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -4000,7 +4000,7 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 </div>
 </div>
 </div>
-<div id="df6af4f3" class="cell" data-execution_count="10">
+<div id="0c169419" class="cell" data-execution_count="10">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -4010,7 +4010,7 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 </div>
 </div>
 <p>Test: The large difference between MAE and RMSE confirms the instability in large loss fires.</p>
-<div id="18571073" class="cell" data-execution_count="11">
+<div id="c742a3c7" class="cell" data-execution_count="11">
 <div class="cell-output cell-output-stdout">
 <pre><code>       Metric       Value
 0  RMSE (log)       2.410
@@ -4021,7 +4021,7 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 5      R2 ($)       0.377</code></pre>
 </div>
 </div>
-<div id="73c1cba2" class="cell" data-execution_count="12">
+<div id="b8ba2cca" class="cell" data-execution_count="12">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -4030,7 +4030,7 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 </div>
 </div>
 </div>
-<div id="db1635df" class="cell" data-execution_count="13">
+<div id="536e3545" class="cell" data-execution_count="13">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -4040,24 +4040,24 @@ Best XGB CV RMSE: 2.474125355450178</code></pre>
 </div>
 </div>
 <p>To improve the R2 scores for log dollar and dollar, I Tried two stages models. But it turns out doesn’t help much, likely due to the internal noise.</p>
-<div id="fed7bfc0" class="cell" data-execution_count="14">
+<div id="a3f207b7" class="cell" data-execution_count="14">
 <div class="cell-output cell-output-stdout">
 <pre><code>146840.61541879261</code></pre>
 </div>
 </div>
-<div id="167bd6f7" class="cell" data-execution_count="15">
+<div id="fc527697" class="cell" data-execution_count="15">
 <div class="cell-output cell-output-stdout">
 <pre><code>Best RF params: {&#39;max_depth&#39;: None, &#39;max_features&#39;: &#39;sqrt&#39;, &#39;min_samples_leaf&#39;: 1, &#39;n_estimators&#39;: 400, &#39;threshold&#39;: 11.918397239722838}
 Best RF RMSE: 2.4282732739508877</code></pre>
 </div>
 </div>
-<div id="c67cc39c" class="cell" data-execution_count="16">
+<div id="4e4aee61" class="cell" data-execution_count="16">
 <div class="cell-output cell-output-stdout">
 <pre><code>Best XGB params: {&#39;colsample_bytree&#39;: 1.0, &#39;learning_rate&#39;: 0.05, &#39;max_depth&#39;: 4, &#39;min_child_weight&#39;: 1, &#39;n_estimators&#39;: 400, &#39;subsample&#39;: 0.9, &#39;threshold&#39;: 11.918397239722838}
 Best XGB RMSE: 2.3747392551547164</code></pre>
 </div>
 </div>
-<div id="0ed4ecfc" class="cell" data-execution_count="17">
+<div id="9e5c7cf0" class="cell" data-execution_count="17">
 <div class="cell-output cell-output-stdout">
 <pre><code>           Model  CV RMSE (log)  Val RMSE (log)  Val RMSE ($)  Val R2 (log)  \
 0  Random Forest         -2.428           2.428    122156.763         0.509   

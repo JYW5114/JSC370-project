@@ -21,11 +21,53 @@
     "text": "This is my JSC370 Final Project website."
   },
   {
-    "objectID": "index.html#introduction",
-    "href": "index.html#introduction",
+    "objectID": "index.html#project-overview",
+    "href": "index.html#project-overview",
     "title": "JSC370 Final Project",
-    "section": "Introduction",
-    "text": "Introduction\nThis project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.\nResearch Questions: What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain types of properties or incident types associated with higher losses?\nResearch Hypothesis: The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation."
+    "section": "Project Overview",
+    "text": "Project Overview\nEvery fire incident leaves behind more than just physical damage - it carries a financial impact that affects individuals, businesses, and the city as a whole.\nThis project explores what drives the financial loss of fire incidents in Toronto, using data, visualization, and machine learning.\nRather than waiting for official damage assessments, this work asks:\n\nCan we estimate financial loss immediately after a fire is controlled?"
+  },
+  {
+    "objectID": "index.html#why-this-matters",
+    "href": "index.html#why-this-matters",
+    "title": "JSC370 Final Project",
+    "section": "Why This Matters",
+    "text": "Why This Matters\nUnderstanding financial loss is critical for:\n\nUrban planning – where should resources go?\nEmergency response – what situations require priority?\nEconomic resilience – how can losses be minimized?\n\nFaster estimates = faster decisions."
+  },
+  {
+    "objectID": "index.html#research-questions",
+    "href": "index.html#research-questions",
+    "title": "JSC370 Final Project",
+    "section": "Research Questions",
+    "text": "Research Questions\nThis project focuses on three key questions:\n\nWhat factors influence the financial loss of fire incidents?\nHow do weather, property type, and response resources affect outcomes?\nAre certain spatial and structural features consistently associated with higher losses?"
+  },
+  {
+    "objectID": "index.html#hypothesis",
+    "href": "index.html#hypothesis",
+    "title": "JSC370 Final Project",
+    "section": "Hypothesis",
+    "text": "Hypothesis\n\nThe model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. Incident characteristics + response data + environmental conditions contain enough information to estimate financial loss.\n\nIf true, this enables:\n\nEarly economic impact estimation\n\nSmarter resource allocation\n\nData-driven emergency management"
+  },
+  {
+    "objectID": "index.html#what-this-project-includes",
+    "href": "index.html#what-this-project-includes",
+    "title": "JSC370 Final Project",
+    "section": "What This Project Includes",
+    "text": "What This Project Includes\n\nExploratory Data Analysis (EDA)\nStatistical Modeling and Machine learning\nInteractive visualizations"
+  },
+  {
+    "objectID": "index.html#explore-the-project",
+    "href": "index.html#explore-the-project",
+    "title": "JSC370 Final Project",
+    "section": "Explore the Project",
+    "text": "Explore the Project\nUse the navigation bar above to explore:\n\nFull Project Report (accessible via the PDF link in the top right corner)\nInteractive Visualizations"
+  },
+  {
+    "objectID": "index.html#final-thought",
+    "href": "index.html#final-thought",
+    "title": "JSC370 Final Project",
+    "section": "Final Thought",
+    "text": "Final Thought\nFire incidents are unpredictable - but their impact doesn’t have to be.\nThis project turns raw incident data into actionable insight, helping us better understand and potentially reduce the cost of fire."
   },
   {
     "objectID": "dataset.html",
@@ -109,7 +151,7 @@
     "href": "report.html#introduction",
     "title": "Analysis of Factors Influencing Fire Incident Financial Loss in Toronto",
     "section": "Introduction",
-    "text": "Introduction\nThis project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.\nResearch Questions: What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain types of properties or incident types associated with higher losses?\nResearch Hypothesis: The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation."
+    "text": "Introduction\nThis project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.\nResearch Questions: What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain spatial and structural features consistently associated with higher losses?\nResearch Hypothesis: The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation."
   },
   {
     "objectID": "report.html#methods",

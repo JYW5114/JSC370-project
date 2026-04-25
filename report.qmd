@@ -3,9 +3,10 @@ title: "Analysis of Factors Influencing Fire Incident Financial Loss in Toronto"
 author: "Yiwei Jiang"
 format:
   html:
-    toc: true
-    embed-resources: true
     theme: cosmo
+    toc: true
+    toc-float: true
+    css: styles.css
 execute:
   echo: false
   warning: false
@@ -24,7 +25,7 @@ The complete reproducible pipeline, including data acquisition scripts and envir
 This project investigates the factors influencing Fire Incident Financial Loss within the City of Toronto. This metric is defined as the estimated dollar loss associated with a fire incident, including property damage and related losses. Understanding the drivers of financial loss is critical for optimizing urban resource allocation, improving fire prevention strategies, and minimizing economic impact.
 
 **Research Questions:**
-What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain types of properties or incident types associated with higher losses?
+What factors influence the financial loss of fire incidents? How do weather conditions, property characteristics, and response resources relate to the severity of the loss? Are certain spatial and structural features consistently associated with higher losses?
 
 **Research Hypothesis:**
 The model predicts financial loss immediately after a fire is brought under control, before the official damage assessment is completed. We hypothesize that incident characteristics, property type, response resources, and weather conditions contain enough information to approximate the final financial loss. If successful, such predictions could provide an early estimate of economic impact and help prioritize post-incident response and resource allocation.
