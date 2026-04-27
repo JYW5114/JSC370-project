@@ -93,7 +93,7 @@ Model performance was assessed using both log-scale and dollar-scale metrics, in
 
 Further diagnostic analysis revealed a notable gap between MAE and RMSE, indicating substantial prediction errors at extremes of the loss distribution. Residual analysis showed a left-skewed distribution, suggesting that while the model is generally well-centered for moderate loss events, it tends to overestimate financial loss for some incidents. At the same time, the predicted vs actual scatter plot highlights instability in the zero-loss region, where the model struggles to identify zero losses.
 
-To address potential nonlinearity and tail behavior, a two-stage modeling strategy was explored, where incidents were first classified into low-loss and high-loss categories, followed by separate regression models for each group. However, this approach did not yield performance improvements, likely due to noise near boundaries.
+To further improve performance, a two-stage modeling strategy separating zero- and non-zero-loss incidents was explored but did not yield improvements because the classifier misclassifies many true zero-loss cases as non-zero, forcing the regression model to assign them positive predictions. This likely occurs because many zero-loss cases are not truly zero but reflect reporting issues or missing values, making the classification boundary inherently noisy.
 
 Overall, the one-staged XGBoost model with log-transformed targets provided the most stable and reliable performance. The results suggest that while engineered features capture substantial signal in the data, predictive uncertainty remains high in extreme fire loss and zero loss scenarios.
 
